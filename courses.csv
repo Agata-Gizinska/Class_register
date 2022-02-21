@@ -1,2 +1,2 @@
 Course name,Grades to pass,Students,Graduates,Dropout
-Computer science,3,[],[],[]
+Computer science,3,"['Donnie Darko', 'Anna Nowak']",[],[]
