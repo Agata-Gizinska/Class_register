@@ -32,9 +32,36 @@ class ClassroomRegister(Register):
         super().__init__()
         self.file = 'classrooms.csv'
 
+    # check if assigned classroom is in Classroom Register
+    @staticmethod
+    def is_classroom_in_register(classroom):
+        with open('classrooms.csv', 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            rows = []
+            for row in reader:
+                rows.append(row)
+            for row in rows:
+                if classroom in row.get('Class name'):
+                    start_year = row.get('Start year')
+                    end_year = row.get('End year')
+                    students = row.get('Students').strip("[]")
+                    students = students.replace("\'", "").split(", ") \
+                        if students else []
+                    graduates = row.get('Graduates').strip("[]")
+                    graduates = graduates.replace("\'", "").split(", ") \
+                        if graduates else []
+                    dropout = row.get('Dropout').strip("[]")
+                    dropout = dropout.replace("\'", "").split(", ") \
+                        if dropout else []
+                    classroom = Classroom(start_year, end_year, students,
+                                          graduates, dropout)
+                    return classroom
+                else:
+                    return False
+
     def new_classroom(self):
         pass
-
+    
     def add_student_to_classroom(self, student, classroom):
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
@@ -49,8 +76,6 @@ class ClassroomRegister(Register):
             for row in rows:
                 if classroom.name in row:
                     row_index = rows.index(row)
-                else:
-                    pass
             # Use found entry index to update list of entries
             if row_index is not None:
                 entry = rows[row_index]
@@ -74,8 +99,6 @@ class ClassroomRegister(Register):
                 file.truncate(0)
                 # Overwrite Classroom Register with updated list of entries
                 writer.writerows(rows)
-            else:
-                pass
 
     def remove_student_from_classroom(self, student):
         pass
@@ -117,6 +140,33 @@ class CourseRegister(Register):
         super().__init__()
         self.file = 'courses.csv'
 
+    # check if first course is in Course Register
+    @staticmethod
+    def is_course_in_register(course):
+        with open('courses.csv', 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            rows = []
+            for row in reader:
+                rows.append(row)
+            for row in rows:
+                if course in row.get('Course name'):
+                    course_name = row.get('Course name')
+                    grade_number = row.get('Grades to pass')
+                    students = row.get('Students').strip('[]')
+                    students = students.replace("\'", "").split(', ') \
+                        if students else []
+                    graduates = row.get('Graduates').strip('[]')
+                    graduates = graduates.replace("\'", "").split(', ') \
+                        if graduates else []
+                    dropout = row.get('Dropout').strip('[]')
+                    dropout = dropout.replace("\'", "").split(', ') \
+                        if dropout else []
+                    course = Course(course_name, grade_number, students,
+                                    graduates, dropout)
+                    return course
+                else:
+                    return False
+
     def new_course(self, name, grades_number):
         pass
 
@@ -136,8 +186,6 @@ class CourseRegister(Register):
                 key_from_course_attr = str(course.keys())
                 if course_name in key_from_course_attr:
                     row_index = rows.index(row)
-                else:
-                    pass
             # Use found entry index to update entry
             if row_index is not None:
                 entry = rows[row_index]
@@ -160,8 +208,6 @@ class CourseRegister(Register):
                 file.truncate(0)
                 # Overwrite Course Register with updated list of entries
                 writer.writerows(rows)
-            else:
-                pass
 
     def update_register(self):
         pass
@@ -186,11 +232,6 @@ class Classroom:
     def add_student_to_class(self, student):
         self.student_list.append(student)
         return self.student_list
-
-    # add student to Classroom Register
-    @staticmethod
-    def add_student_to_register(student, register):
-        register.add_student_to_classroom(student, student.classroom)
 
     def drop_out_student(self, student):
         self.student_list.remove(student)
@@ -223,11 +264,11 @@ class Student:
         # automatically add student to prompted classroom
         classroom.add_student_to_class(self)
         # automatically assign student to classroom in Classroom Register
-        classroom.add_student_to_register(self, class_register)
+        class_register.add_student_to_classroom(self, classroom)
         # automatically add student to prompted course
         course.add_student_to_course(self)
         # automatically assign student to course in Course Register
-        course.add_student_to_register(self, course_register)
+        course_register.add_student_to_course(self, self.courses[0])
 
     def __repr__(self):
         return self.fullname
@@ -235,7 +276,6 @@ class Student:
     def add_course(self, course):
         self.courses.append({course: []})
         course.attending_students.append(self)
-        return self.courses
 
     def get_grade(self, course, grade):
         for course_ in self.courses:  # for item in course list
@@ -250,8 +290,6 @@ class Student:
                     else:
                         course.drop_outs.append(self)
                         self.drop_out()
-                else:
-                    pass
                 return self.courses
             else:
                 pass
@@ -266,8 +304,6 @@ class Student:
         if self in self.classroom.graduates:
             self.status = 'Graduate'
             # to do: update Classroom and Student Register
-        else:
-            pass
 
     def drop_out(self):
         self.status = 'Inactive'
@@ -293,11 +329,6 @@ class Course:
         self.attending_students.append(student)
         return self.attending_students
 
-    # add student to Course Register
-    @staticmethod
-    def add_student_to_register(student, register):
-        register.add_student_to_course(student, student.courses[0])
-
     def give_grade(self, student, grade):
         if student in self.attending_students:
             student.get_grade(self, grade)
@@ -308,8 +339,6 @@ class Course:
         for student_ in self.attending_students:
             if student_ == student:
                 self.attending_students.remove(student)
-            else:
-                pass
         self.graduates.append({student: grade})
         return self.attending_students, self.graduates
 
@@ -321,29 +350,29 @@ def main():
 
     parser = argparse.ArgumentParser()
     # print Classroom Register
-    parser.add_argument('--print_class', '-pcl', action='store_true',
+    parser.add_argument('--print_class', action='store_true',
                         help='Print classroom register')
     # print Student Register
-    parser.add_argument('--print_students', '-ps', action='store_true',
+    parser.add_argument('--print_students', action='store_true',
                         help='Print student register')
     # print Course Register
-    parser.add_argument('--print_courses', '-pco', action='store_true',
+    parser.add_argument('--print_courses', action='store_true',
                         help='Print courses register')
     # add new classroom to Classroom Register
-    parser.add_argument('--new_classroom', '-newcl', nargs='*',
+    parser.add_argument('--new_classroom', nargs='*',
                         help='Add new classroom, give start year, end year')
     # add new student to Student Register
-    parser.add_argument('--new_student', '-newst', nargs=5,
+    parser.add_argument('--new_student', nargs=5,
                         help='Add new student: give first name, last name, '
                              'date of birth yyyy-mm-dd, existing assigned '
                              'classroom, at least one existing course to '
                              'assign')
     # add new course to Course Register
-    parser.add_argument('--new_course', '-newco', nargs='*',
+    parser.add_argument('--new_course', nargs='*',
                         help='Add new course, give course name, number of '
                              'grades to pass')
     # give grade to student
-    parser.add_argument('--give_grade', '-grade', nargs=2,
+    parser.add_argument('--give_grade', nargs=2,
                         help="Give grade to student, give grade, "
                              "student's name")
 
@@ -359,74 +388,25 @@ def main():
         pass
     elif args.new_student:
         args_ = args.new_student
-        assigned_classroom = args_[3]
-        first_course = args_[4]
+        first_name, last_name, birthdate = args_[0], args_[1], args_[2]
 
-        # check if assigned classroom is in Classroom Register
-        def is_classroom_in_register(classroom):
-            with open('classrooms.csv', 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                rows = []
-                for row in reader:
-                    rows.append(row)
-                for row in rows:
-                    if classroom in row.get('Class name'):
-                        start_year = row.get('Start year')
-                        end_year = row.get('End year')
-                        students = row.get('Students').strip('[]').split(',')\
-                            if not "''" else []
-                        graduates = row.get('Graduates').strip('[]'). \
-                            split(',') if not "''" else []
-                        dropout = row.get('Dropout').strip('[]').split(',') \
-                            if not "''" else []
-                        nonlocal assigned_classroom
-                        assigned_classroom = Classroom(start_year, end_year,
-                                                       students, graduates,
-                                                       dropout)
-                    else:
-                        print('Create new classroom first!')
-
-        # check if first course is in Course Register
-        def is_course_in_register(course):
-            with open('courses.csv', 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                rows = []
-                for row in reader:
-                    rows.append(row)
-                for row in rows:
-                    if course in row.get('Course name'):
-                        course_name = row.get('Course name')
-                        grade_number = row.get('Grades to pass')
-                        students = row.get('Students').strip('[]').split(', ')\
-                            if not "''" else []
-                        graduates = row.get('Graduates').strip('[]'). \
-                            split(', ') if not "''" else []
-                        dropout = row.get('Dropout').strip('[]').split(', ') \
-                            if not "''" else []
-                        nonlocal first_course
-                        first_course = Course(course_name, grade_number,
-                                              students, graduates, dropout)
-                    else:
-                        print('Create new classroom first!')
-
-        # test if prompted classroom and course exist in registers
-        is_classroom_in_register(assigned_classroom)
-        is_course_in_register(first_course)
-
-        # swap arguments to created Classroom and Course objects
-        args_.pop(3)
-        args_.pop(3)
-        args_.append(assigned_classroom)
-        args_.append(first_course)
-
-        # append info about registers' objects to arguments, so program can
-        # use them later
-        args_.append(class_reg)
-        args_.append(course_reg)
+        # test if prompted classroom exists in the register
+        assigned_classroom = class_reg.is_classroom_in_register(args_[3])
+        # exit creating student if assigned classroom does not exist
+        if not assigned_classroom:
+            print('Create new classroom first!')
+            exit()
+        # test if prompted course exists in the register
+        first_course = course_reg.is_course_in_register(args_[4])
+        # exit creating student if assigned course does not exist
+        if not first_course:
+            print('Create new course first!')
+            exit()
 
         # begin creation of new Student in Student Register
-        student_reg.new_student(args_[0], args_[1], args_[2], args_[3],
-                                args_[4], args_[5], args_[6])
+        student_reg.new_student(first_name, last_name, birthdate,
+                                assigned_classroom, first_course, class_reg,
+                                course_reg)
 
     elif args.new_course:
         pass
