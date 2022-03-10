@@ -32,10 +32,9 @@ class ClassroomRegister(Register):
         super().__init__()
         self.file = 'classrooms.csv'
 
-    # check if assigned classroom is in Classroom Register
-    @staticmethod
-    def is_classroom_in_register(classroom):
-        with open('classrooms.csv', 'r', encoding='utf-8') as file:
+    # Check if a classroom is in Classroom Register
+    def is_classroom_in_register(self, classroom):
+        with open(self.file, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             rows = []
             for row in reader:
@@ -59,9 +58,20 @@ class ClassroomRegister(Register):
                 else:
                     return False
 
-    def new_classroom(self):
-        pass
-    
+    # Add a new classroom into Classroom Register
+    def new_classroom(self, classroom):
+        with open(self.file, 'a', encoding='utf-8', newline='') as file:
+            writer = csv.writer(file)
+            classroom_name = classroom.name
+            start_year = classroom.start_year
+            end_year = classroom.end_year
+            students = classroom.student_list
+            graduates = classroom.graduates
+            dropout = classroom.drop_out_list
+            writer.writerow([classroom_name, start_year, end_year, students,
+                             graduates, dropout])
+
+    # Add a new student into existing classroom in Classroom Register
     def add_student_to_classroom(self, student, classroom):
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
@@ -111,6 +121,7 @@ class StudentRegister(Register):
         self.file = 'students.csv'
         self.selected_classroom = None
 
+    # Add a new student into Student Register
     def new_student(self, *args):
         # create new Student instance
         new_student_ = Student(*args)
@@ -140,7 +151,7 @@ class CourseRegister(Register):
         super().__init__()
         self.file = 'courses.csv'
 
-    # check if first course is in Course Register
+    # Check if a course is in Course Register
     @staticmethod
     def is_course_in_register(course):
         with open('courses.csv', 'r', encoding='utf-8') as file:
@@ -167,9 +178,11 @@ class CourseRegister(Register):
                 else:
                     return False
 
+    # Add a new course into Course Register
     def new_course(self, name, grades_number):
         pass
 
+    # Add a new student to a specific course in Course Register
     def add_student_to_course(self, student, course):
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
@@ -221,18 +234,19 @@ class Classroom:
         self.end_year = int(end_year)
         self.name = f'{start_year}-{end_year}'
         self.years_num = int(end_year) - int(start_year)
-        self.student_list = students if not None else []
-        self.drop_out_list = dropout if not None else []
-        self.graduates = graduates if not None else []
+        self.student_list = [] if not students else students
+        self.drop_out_list = [] if not dropout else dropout
+        self.graduates = [] if not graduates else graduates
 
     def __repr__(self):
         return f'Class {self.name}'
 
-    # add student to Classroom instance
+    # Add a student into Classroom instance
     def add_student_to_class(self, student):
         self.student_list.append(student)
         return self.student_list
 
+    # Remove a student from Classroom instance
     def drop_out_student(self, student):
         self.student_list.remove(student)
         self.drop_out_list.append(student)
@@ -273,10 +287,13 @@ class Student:
     def __repr__(self):
         return self.fullname
 
+    # Add a course to Student instance
     def add_course(self, course):
         self.courses.append({course: []})
         course.attending_students.append(self)
 
+    # Assign a grade to a specific course of Student instance and check if
+    # graduation conditions are met
     def get_grade(self, course, grade):
         for course_ in self.courses:  # for item in course list
             if course in course_.keys():  # if the course is in keys
@@ -291,9 +308,8 @@ class Student:
                         course.drop_outs.append(self)
                         self.drop_out()
                 return self.courses
-            else:
-                pass
 
+    # Calculate the final grade if course graduation conditions are met
     @staticmethod
     def calc_final_grade(grades):
         final_grade = round(sum(grades) / len(grades))
@@ -316,19 +332,20 @@ class Course:
     def __init__(self, course_name, partial_grades_num, students=None,
                  graduates=None, dropout=None):
         self.course_name = course_name
-        self.attending_students = students if not None else []
-        self.graduates = graduates if not None else []
-        self.drop_outs = dropout if not None else []
+        self.attending_students = [] if not students else students
+        self.graduates = [] if not graduates else graduates
+        self.drop_outs = [] if not dropout else dropout
         self.len_partial = int(partial_grades_num)
 
     def __repr__(self):
         return self.course_name
 
-    # add student to Course instance
+    # Add student to Course instance
     def add_student_to_course(self, student):
         self.attending_students.append(student)
         return self.attending_students
 
+    # Assign a grade to the specific student in Course instance
     def give_grade(self, student, grade):
         if student in self.attending_students:
             student.get_grade(self, grade)
@@ -385,7 +402,19 @@ def main():
     elif args.print_courses:
         course_reg.print_register()
     elif args.new_classroom:
-        pass
+        start_year, end_year = args.new_classroom[0], args.new_classroom[1]
+        classroom_name = start_year + '-' + end_year
+
+        # Check if prompted classroom exists in the register
+        check = class_reg.is_classroom_in_register(classroom_name)
+        # Add a new classroom into the register if it has not been registered
+        if check:
+            print('Prompted classroom already exists')
+        else:
+            new_classroom = Classroom(start_year, end_year)
+            class_reg.new_classroom(new_classroom)
+            print(f'{new_classroom} has been added to register')
+
     elif args.new_student:
         args_ = args.new_student
         first_name, last_name, birthdate = args_[0], args_[1], args_[2]
