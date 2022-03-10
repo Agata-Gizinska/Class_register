@@ -56,7 +56,7 @@ class ClassroomRegister(Register):
                                           graduates, dropout)
                     return classroom
                 else:
-                    return False
+                    continue
 
     # Add a new classroom into Classroom Register
     def new_classroom(self, classroom):
@@ -176,11 +176,19 @@ class CourseRegister(Register):
                                     graduates, dropout)
                     return course
                 else:
-                    return False
+                    continue
 
     # Add a new course into Course Register
-    def new_course(self, name, grades_number):
-        pass
+    def new_course(self, course):
+        with open(self.file, 'a', encoding='utf-8', newline='') as file:
+            writer = csv.writer(file)
+            course_name = course.course_name
+            grades_number = course.grades_number
+            students = course.attending_students
+            graduates = course.graduates
+            dropout = course.drop_outs
+            writer.writerow([course_name, grades_number, students,
+                             graduates, dropout])
 
     # Add a new student to a specific course in Course Register
     def add_student_to_course(self, student, course):
@@ -299,8 +307,8 @@ class Student:
             if course in course_.keys():  # if the course is in keys
                 course_.get(course).append(grade)  # append grade to values in
                 # course dictionary
-                if len(course_.get(course)) == course.len_partial:  # check if
-                    # student got maximum number of partial grades for course
+                if len(course_.get(course)) == course.grades_number:  # check
+                    # if student got maximum number of grades for course
                     final_grade = self.calc_final_grade(course_.get(course))
                     if final_grade >= 3:
                         course.pass_course(self, final_grade)
@@ -329,13 +337,13 @@ class Student:
 
 class Course:
 
-    def __init__(self, course_name, partial_grades_num, students=None,
+    def __init__(self, course_name, grades_number, students=None,
                  graduates=None, dropout=None):
         self.course_name = course_name
         self.attending_students = [] if not students else students
         self.graduates = [] if not graduates else graduates
         self.drop_outs = [] if not dropout else dropout
-        self.len_partial = int(partial_grades_num)
+        self.grades_number = int(grades_number)
 
     def __repr__(self):
         return self.course_name
@@ -423,13 +431,15 @@ def main():
         assigned_classroom = class_reg.is_classroom_in_register(args_[3])
         # exit creating student if assigned classroom does not exist
         if not assigned_classroom:
-            print('Create new classroom first!')
+            print(f'Classroom {args_[3]} does not exist. Create new classroom '
+                  f'first!')
             exit()
         # test if prompted course exists in the register
         first_course = course_reg.is_course_in_register(args_[4])
         # exit creating student if assigned course does not exist
         if not first_course:
-            print('Create new course first!')
+            print(f'Course {args_[4]} does not exist. Create new course '
+                  f'first!')
             exit()
 
         # begin creation of new Student in Student Register
@@ -438,7 +448,18 @@ def main():
                                 course_reg)
 
     elif args.new_course:
-        pass
+        course_name, grades_number = args.new_course[0], args.new_course[1]
+
+        # Check if prompted course exists in the register
+        check = course_reg.is_course_in_register(course_name)
+        # Add a new course into the register if it has not been registered
+        if check:
+            print('Prompted course already exists')
+        else:
+            new_course = Course(course_name, grades_number)
+            course_reg.new_course(new_course)
+            print(f'{new_course} has been added to register')
+
     elif args.give_grade:
         pass
 
