@@ -19,6 +19,14 @@ class Register:
     def __repr__(self):
         return self.name
 
+    def read_rows_in_register(self):
+        with open(self.file, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            rows = []
+            for row in reader:
+                rows.append(row)
+            return rows
+
     def print_register(self):
         with open(self.file, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
@@ -34,29 +42,37 @@ class ClassroomRegister(Register):
 
     # Check if a classroom is in Classroom Register
     def is_classroom_in_register(self, classroom):
-        with open(self.file, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            rows = []
-            for row in reader:
-                rows.append(row)
-            for row in rows:
-                if classroom in row.get('Class name'):
-                    start_year = row.get('Start year')
-                    end_year = row.get('End year')
-                    students = row.get('Students').strip("[]")
-                    students = students.replace("\'", "").split(", ") \
-                        if students else []
-                    graduates = row.get('Graduates').strip("[]")
-                    graduates = graduates.replace("\'", "").split(", ") \
-                        if graduates else []
-                    dropout = row.get('Dropout').strip("[]")
-                    dropout = dropout.replace("\'", "").split(", ") \
-                        if dropout else []
-                    classroom = Classroom(start_year, end_year, students,
-                                          graduates, dropout)
-                    return classroom
-                else:
-                    continue
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if classroom in row.get('Class name'):
+                start_year = row.get('Start year')
+                end_year = row.get('End year')
+                students = row.get('Students').strip("[]")
+                students = students.replace("\'", "").split(", ") \
+                    if students else []
+                graduates = row.get('Graduates').strip("[]")
+                graduates = graduates.replace("\'", "").split(", ") \
+                    if graduates else []
+                dropout = row.get('Dropout').strip("[]")
+                dropout = dropout.replace("\'", "").split(", ") \
+                    if dropout else []
+                classroom = Classroom(start_year, end_year, students,
+                                      graduates, dropout)
+                return classroom
+            else:
+                continue
+
+    def extract_classroom_info(self, classroom, info):
+        fieldnames = ['Class name', 'Start year', 'End year', 'Students',
+                      'Graduates', 'Dropout']
+        searched_index = info.index() if info in fieldnames else None
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if classroom in row.get('Class name'):
+                searched_info = row.get(fieldnames[searched_index])
+                return searched_info
+            else:
+                continue
 
     # Add a new classroom into Classroom Register
     def new_classroom(self, classroom):
@@ -110,7 +126,10 @@ class ClassroomRegister(Register):
                 # Overwrite Classroom Register with updated list of entries
                 writer.writerows(rows)
 
-    def remove_student_from_classroom(self, student):
+    def move_student_to_graduates(self, student):
+        pass
+
+    def move_student_to_dropouts(self, student):
         pass
 
 
@@ -120,6 +139,56 @@ class StudentRegister(Register):
         super().__init__()
         self.file = 'students.csv'
         self.selected_classroom = None
+
+    def is_student_in_register(self, student):
+        first_name = student.split(' ')[0]
+        last_name = student.split(' ')[1]
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if last_name in row.get('Last name'):
+                if first_name in row.get('First name'):
+                    return True
+                else:
+                    continue
+
+    def is_student_attending_course(self, student, course):
+        first_name = student.split(' ')[0]
+        last_name = student.split(' ')[1]
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if last_name in row.get('Last name'):
+                if first_name in row.get('First name'):
+                    courses = row.get('Courses')
+                    courses = courses.split('}, {')
+                    courses_list = []
+                    for item in courses:
+                        item = item.replace("[", "").replace("]", "") \
+                            .strip("{}")
+                        key = item.split(": ")[0]
+                        value = item.split(": ")[1].split(", ")
+                        value = [] if value[0] == '' else value
+                        new_tuple = (key, value)
+                        courses_list.append(new_tuple)
+                    courses = dict(tup for tup in courses_list)
+                    if course in courses.keys():
+                        return True
+                    else:
+                        continue
+
+    def extract_student_info(self, student, info):
+        fieldnames = ['First name', 'Last name', 'Date of birth',
+                      'Classroom', 'Courses']
+        searched_index = fieldnames.index(info)
+        first_name = student.split(' ')[0]
+        last_name = student.split(' ')[1]
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if last_name in row.get('Last name'):
+                if first_name in row.get('First name'):
+                    searched_info = row.get(fieldnames[searched_index])
+                    return searched_info
+                else:
+                    continue
 
     # Add a new student into Student Register
     def new_student(self, *args):
@@ -138,10 +207,13 @@ class StudentRegister(Register):
         print(f'New student {new_student_.fullname} has been added to the '
               f'Register')
 
-    def move_to_graduates(self, student):
+    def move_student_to_graduates(self, student):
         pass
 
-    def move_to_dropout(self, student):
+    def move_student_to_dropouts(self, student):
+        pass
+
+    def update_student_info(self, student, course=None, grade=None):
         pass
 
 
@@ -152,31 +224,41 @@ class CourseRegister(Register):
         self.file = 'courses.csv'
 
     # Check if a course is in Course Register
-    @staticmethod
-    def is_course_in_register(course):
-        with open('courses.csv', 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            rows = []
-            for row in reader:
-                rows.append(row)
-            for row in rows:
-                if course in row.get('Course name'):
-                    course_name = row.get('Course name')
-                    grade_number = row.get('Grades to pass')
-                    students = row.get('Students').strip('[]')
-                    students = students.replace("\'", "").split(', ') \
-                        if students else []
-                    graduates = row.get('Graduates').strip('[]')
-                    graduates = graduates.replace("\'", "").split(', ') \
-                        if graduates else []
-                    dropout = row.get('Dropout').strip('[]')
-                    dropout = dropout.replace("\'", "").split(', ') \
-                        if dropout else []
-                    course = Course(course_name, grade_number, students,
-                                    graduates, dropout)
-                    return course
-                else:
-                    continue
+    def is_course_in_register(self, course):
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if course in row.get('Course name'):
+                course_name = row.get('Course name')
+                grade_number = row.get('Grades to pass')
+                students = row.get('Students').strip('[]')
+                students = students.replace("\'", "").split(', ') \
+                    if students else []
+                graduates = row.get('Graduates').strip('[]')
+                graduates = graduates.replace("\'", "").split(', ') \
+                    if graduates else []
+                dropout = row.get('Dropout').strip('[]')
+                dropout = dropout.replace("\'", "").split(', ') \
+                    if dropout else []
+                course = Course(course_name, grade_number, students,
+                                graduates, dropout)
+                return course
+            else:
+                continue
+
+    def extract_course_info(self, course, info):
+        fieldnames = ['Course name', 'Grades to pass', 'Students', 'Graduates',
+                      'Dropout']
+        searched_index = fieldnames.index(info)
+        rows = self.read_rows_in_register()
+        for row in rows:
+            if course in row.get('Course name'):
+                searched_info = row.get(fieldnames[searched_index])
+                if searched_index in [2, 3, 4]:
+                    searched_info = [] if searched_info == '[]' else \
+                        searched_info.strip('[]').replace('\'', '').split(', ')
+                return searched_info
+            else:
+                continue
 
     # Add a new course into Course Register
     def new_course(self, course):
@@ -230,7 +312,10 @@ class CourseRegister(Register):
                 # Overwrite Course Register with updated list of entries
                 writer.writerows(rows)
 
-    def update_register(self):
+    def move_student_to_graduates(self, student):
+        pass
+
+    def move_student_to_dropouts(self, student):
         pass
 
 
@@ -272,7 +357,7 @@ class Classroom:
 class Student:
 
     def __init__(self, first_name, last_name, birth_date, classroom, course,
-                 class_register, course_register):
+                 class_register, course_register, student_register):
         self.first_name = str(first_name)
         self.last_name = str(last_name)
         self.fullname = f'{first_name} {last_name}'
@@ -283,14 +368,18 @@ class Student:
         self.classroom = classroom
         self.status = 'Active'
         self.courses = [{course: []}]
-        # automatically add student to prompted classroom
-        classroom.add_student_to_class(self)
-        # automatically assign student to classroom in Classroom Register
-        class_register.add_student_to_classroom(self, classroom)
-        # automatically add student to prompted course
-        course.add_student_to_course(self)
-        # automatically assign student to course in Course Register
-        course_register.add_student_to_course(self, self.courses[0])
+        check_if_registered = \
+            student_register.is_student_in_register(f'{self.first_name} '
+                                                    f'{self.last_name}')
+        if not check_if_registered:
+            # automatically add student to prompted classroom
+            classroom.add_student_to_class(self)
+            # automatically assign student to classroom in Classroom Register
+            class_register.add_student_to_classroom(self, classroom)
+            # automatically add student to prompted course
+            course.add_student_to_course(self)
+            # automatically assign student to course in Course Register
+            course_register.add_student_to_course(self, self.courses[0])
 
     def __repr__(self):
         return self.fullname
@@ -397,8 +486,8 @@ def main():
                         help='Add new course, give course name, number of '
                              'grades to pass')
     # give grade to student
-    parser.add_argument('--give_grade', nargs=2,
-                        help="Give grade to student, give grade, "
+    parser.add_argument('--give_grade', nargs=3,
+                        help="Give grade to student, give course, grade, "
                              "student's name")
 
     args = parser.parse_args()
@@ -417,7 +506,7 @@ def main():
         check = class_reg.is_classroom_in_register(classroom_name)
         # Add a new classroom into the register if it has not been registered
         if check:
-            print('Prompted classroom already exists')
+            print(f'{classroom_name} already exists')
         else:
             new_classroom = Classroom(start_year, end_year)
             class_reg.new_classroom(new_classroom)
@@ -445,7 +534,7 @@ def main():
         # begin creation of new Student in Student Register
         student_reg.new_student(first_name, last_name, birthdate,
                                 assigned_classroom, first_course, class_reg,
-                                course_reg)
+                                course_reg, student_reg)
 
     elif args.new_course:
         course_name, grades_number = args.new_course[0], args.new_course[1]
@@ -454,14 +543,60 @@ def main():
         check = course_reg.is_course_in_register(course_name)
         # Add a new course into the register if it has not been registered
         if check:
-            print('Prompted course already exists')
+            print(f'{course_name} already exists')
         else:
             new_course = Course(course_name, grades_number)
             course_reg.new_course(new_course)
             print(f'{new_course} has been added to register')
 
     elif args.give_grade:
-        pass
+        student_object = None
+        course_name = args.give_grade[0]
+        grade = args.give_grade[1]
+        student_name = args.give_grade[2]
+
+        # Check if course exists and exit program if it does not
+        check_course = course_reg.is_course_in_register(course_name)
+        if not check_course:
+            print(f'Course {course_name} does not exist. Create new course'
+                  f'first!')
+            exit()
+
+        # Check if student exists
+        check_student = student_reg.is_student_in_register(student_name)
+        if not check_student:
+            print(f'Student {student_name} does not exist.')
+            exit()  # exit program if student does not exist
+
+        # Check if student attends course
+        check_student_in_course = \
+            student_reg.is_student_attending_course(student_name, course_name)
+        if check_student_in_course:
+            # Create student object from register data
+            first_name = student_name.split(' ')[0]
+            last_name = student_name.split(' ')[1]
+            date_of_birth = student_reg.extract_student_info(student_name,
+                                                             'Date of birth')
+            classroom = student_reg.extract_student_info(student_name,
+                                                         'Classroom')
+            courses = student_reg.extract_student_info(student_name, 'Courses')
+            student_object = Student(first_name, last_name, date_of_birth,
+                                     classroom, courses, class_reg,
+                                     course_reg, student_reg)
+            # Create course object from register data
+            grades_number = course_reg.extract_course_info(course_name,
+                                                           'Grades to pass')
+            students = course_reg.extract_course_info(course_name, 'Students')
+            graduates = course_reg.extract_course_info(course_name,
+                                                       'Graduates')
+            dropout = course_reg.extract_course_info(course_name, 'Dropout')
+            course_object = Course(course_name, grades_number, students,
+                                   graduates, dropout)
+            student_object.get_grade(course_object, grade)
+            student_reg.update_student_info(student_object)
+        else:
+            print(f'{student_name} does not attend {course_name}')
+            exit()  # exit program if student does not attend course
 
 
 if __name__ == '__main__':
