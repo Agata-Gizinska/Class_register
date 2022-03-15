@@ -20,6 +20,7 @@ class Register:
         return self.name
 
     def read_rows_in_register(self):
+        """Read all lines in the register and return a list of rows."""
         with open(self.file, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             rows = []
@@ -28,6 +29,7 @@ class Register:
             return rows
 
     def print_register(self):
+        """Print all current content of a register."""
         with open(self.file, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -40,8 +42,8 @@ class ClassroomRegister(Register):
         super().__init__()
         self.file = 'classrooms.csv'
 
-    # Check if a classroom is in Classroom Register
     def is_classroom_in_register(self, classroom):
+        """Check if a classroom is in Classroom Register."""
         rows = self.read_rows_in_register()
         for row in rows:
             if classroom in row.get('Class name'):
@@ -63,6 +65,7 @@ class ClassroomRegister(Register):
                 continue
 
     def extract_classroom_info(self, classroom, info):
+        """Extract specific kind of information from Classroom Register."""
         fieldnames = ['Class name', 'Start year', 'End year', 'Students',
                       'Graduates', 'Dropout']
         searched_index = info.index() if info in fieldnames else None
@@ -74,8 +77,8 @@ class ClassroomRegister(Register):
             else:
                 continue
 
-    # Add a new classroom into Classroom Register
     def new_classroom(self, classroom):
+        """Add a new classroom into Classroom Register."""
         with open(self.file, 'a', encoding='utf-8', newline='') as file:
             writer = csv.writer(file)
             classroom_name = classroom.name
@@ -87,8 +90,8 @@ class ClassroomRegister(Register):
             writer.writerow([classroom_name, start_year, end_year, students,
                              graduates, dropout])
 
-    # Add a new student into existing classroom in Classroom Register
     def add_student_to_classroom(self, student, classroom):
+        """Add a new student into existing classroom in Classroom Register."""
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             # Create a list of entries from Classroom Register
@@ -141,6 +144,7 @@ class StudentRegister(Register):
         self.selected_classroom = None
 
     def is_student_in_register(self, student):
+        """Check if a student is in Student Register."""
         first_name = student.split(' ')[0]
         last_name = student.split(' ')[1]
         rows = self.read_rows_in_register()
@@ -152,6 +156,7 @@ class StudentRegister(Register):
                     continue
 
     def is_student_attending_course(self, student, course):
+        """Check if a student attends a specific course."""
         first_name = student.split(' ')[0]
         last_name = student.split(' ')[1]
         rows = self.read_rows_in_register()
@@ -176,6 +181,7 @@ class StudentRegister(Register):
                         continue
 
     def extract_student_info(self, student, info):
+        """Extract specific kind of information from Student Register."""
         fieldnames = ['First name', 'Last name', 'Date of birth',
                       'Classroom', 'Courses']
         searched_index = fieldnames.index(info)
@@ -190,8 +196,8 @@ class StudentRegister(Register):
                 else:
                     continue
 
-    # Add a new student into Student Register
     def new_student(self, *args):
+        """Add a new student into Student Register."""
         # create new Student instance
         new_student_ = Student(*args)
         # write new student data into Student Register
@@ -223,8 +229,8 @@ class CourseRegister(Register):
         super().__init__()
         self.file = 'courses.csv'
 
-    # Check if a course is in Course Register
     def is_course_in_register(self, course):
+        """Check if a course is in Course Register."""
         rows = self.read_rows_in_register()
         for row in rows:
             if course in row.get('Course name'):
@@ -246,6 +252,7 @@ class CourseRegister(Register):
                 continue
 
     def extract_course_info(self, course, info):
+        """Extract specific kind of information from Course Register."""
         fieldnames = ['Course name', 'Grades to pass', 'Students', 'Graduates',
                       'Dropout']
         searched_index = fieldnames.index(info)
@@ -260,8 +267,8 @@ class CourseRegister(Register):
             else:
                 continue
 
-    # Add a new course into Course Register
     def new_course(self, course):
+        """Add a new course into Course Register."""
         with open(self.file, 'a', encoding='utf-8', newline='') as file:
             writer = csv.writer(file)
             course_name = course.course_name
@@ -272,8 +279,8 @@ class CourseRegister(Register):
             writer.writerow([course_name, grades_number, students,
                              graduates, dropout])
 
-    # Add a new student to a specific course in Course Register
     def add_student_to_course(self, student, course):
+        """Add a new student to a specific course in Course Register."""
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             # Create a list of entries from Course Register
@@ -334,13 +341,13 @@ class Classroom:
     def __repr__(self):
         return f'Class {self.name}'
 
-    # Add a student into Classroom instance
-    def add_student_to_class(self, student):
+    def add_student_to_classroom(self, student):
+        """Add a student into Classroom instance."""
         self.student_list.append(student)
         return self.student_list
 
-    # Remove a student from Classroom instance
     def drop_out_student(self, student):
+        """Remove a student from Classroom instance."""
         self.student_list.remove(student)
         self.drop_out_list.append(student)
         return self.student_list, self.drop_out_list
@@ -373,7 +380,7 @@ class Student:
                                                     f'{self.last_name}')
         if not check_if_registered:
             # automatically add student to prompted classroom
-            classroom.add_student_to_class(self)
+            classroom.add_student_to_classroom(self)
             # automatically assign student to classroom in Classroom Register
             class_register.add_student_to_classroom(self, classroom)
             # automatically add student to prompted course
@@ -384,21 +391,22 @@ class Student:
     def __repr__(self):
         return self.fullname
 
-    # Add a course to Student instance
-    def add_course(self, course):
+    def add_to_course(self, course):
+        """Add a course to Student instance."""
         self.courses.append({course: []})
         course.attending_students.append(self)
 
-    # Assign a grade to a specific course of Student instance and check if
-    # graduation conditions are met
     def get_grade(self, course, grade):
-        for course_ in self.courses:  # for item in course list
-            if course in course_.keys():  # if the course is in keys
-                course_.get(course).append(grade)  # append grade to values in
-                # course dictionary
-                if len(course_.get(course)) == course.grades_number:  # check
-                    # if student got maximum number of grades for course
-                    final_grade = self.calc_final_grade(course_.get(course))
+        """Assign a grade to a specific course of Student instance and check 
+        if graduation conditions are met."""
+        for course_item in self.courses:  # for item in course list
+            if course in course_item.keys():  # if the course is in keys
+                course_item.get(course).append(grade)  # append grade to
+                # values in course dictionary
+                # check if student got maximum number of grades for course
+                if len(course_item.get(course)) == course.grades_number:
+                    final_grade = \
+                        self.calc_final_grade(course_item.get(course))
                     if final_grade >= 3:
                         course.pass_course(self, final_grade)
                     else:
@@ -406,9 +414,10 @@ class Student:
                         self.drop_out()
                 return self.courses
 
-    # Calculate the final grade if course graduation conditions are met
     @staticmethod
     def calc_final_grade(grades):
+        """Calculate the final grade if course graduation conditions are
+        met."""
         final_grade = round(sum(grades) / len(grades))
         return final_grade
 
@@ -437,13 +446,13 @@ class Course:
     def __repr__(self):
         return self.course_name
 
-    # Add student to Course instance
     def add_student_to_course(self, student):
+        """Add student to Course instance."""
         self.attending_students.append(student)
         return self.attending_students
 
-    # Assign a grade to the specific student in Course instance
     def give_grade(self, student, grade):
+        """Assign a grade to the specific student in Course instance."""
         if student in self.attending_students:
             student.get_grade(self, grade)
         else:
@@ -455,6 +464,9 @@ class Course:
                 self.attending_students.remove(student)
         self.graduates.append({student: grade})
         return self.attending_students, self.graduates
+
+    def drop_out_student(self, student):
+        pass
 
 
 def main():
@@ -494,10 +506,13 @@ def main():
 
     if args.print_class:
         class_reg.print_register()
+
     elif args.print_students:
         student_reg.print_register()
+
     elif args.print_courses:
         course_reg.print_register()
+
     elif args.new_classroom:
         start_year, end_year = args.new_classroom[0], args.new_classroom[1]
         classroom_name = start_year + '-' + end_year
