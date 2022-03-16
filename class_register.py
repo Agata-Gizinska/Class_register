@@ -22,7 +22,7 @@ class Register:
     def read_rows_in_register(self):
         """Read all lines in the register and return a list of rows."""
         with open(self.file, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
+            reader = csv.DictReader(file, delimiter=';')
             rows = []
             for row in reader:
                 rows.append(row)
@@ -31,7 +31,7 @@ class Register:
     def print_register(self):
         """Print all current content of a register."""
         with open(self.file, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
+            reader = csv.DictReader(file, delimiter=';')
             for row in reader:
                 print(row)
 
@@ -80,7 +80,7 @@ class ClassroomRegister(Register):
     def new_classroom(self, classroom):
         """Add a new classroom into Classroom Register."""
         with open(self.file, 'a', encoding='utf-8', newline='') as file:
-            writer = csv.writer(file)
+            writer = csv.writer(file, delimiter=';')
             classroom_name = classroom.name
             start_year = classroom.start_year
             end_year = classroom.end_year
@@ -93,12 +93,12 @@ class ClassroomRegister(Register):
     def add_student_to_classroom(self, student, classroom):
         """Add a new student into existing classroom in Classroom Register."""
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
-            reader = csv.reader(file)
+            reader = csv.reader(file, delimiter=';')
             # Create a list of entries from Classroom Register
             rows = []
             for row in reader:
                 rows.append(row)
-            writer = csv.writer(file)
+            writer = csv.writer(file, delimiter=';')
             # Find appropriate classroom in Classroom Register and update its
             # entry index
             row_index = None
@@ -111,16 +111,18 @@ class ClassroomRegister(Register):
                 classroom_name = entry[0]
                 start_year = entry[1]
                 end_year = entry[2]
-                students = entry[3].strip("[]").replace("'", '').split(',')
+                # Strip strings from redundant characters
+                students = entry[3].strip("[]").replace("\'", '').split(', ')
                 students = [x for x in students if x]
-                graduates = entry[4].strip("[]").replace("'", '').split(',')
+                graduates = entry[4].strip("[]").replace("\'", '').split(', ')
                 graduates = [x for x in graduates if x]
-                dropout = entry[5].strip("[]").replace("'", '').split(',')
+                dropout = entry[5].strip("[]").replace("\'", '').split(', ')
                 dropout = [x for x in dropout if x]
+                # Create updated row
                 new_row = [classroom_name, start_year, end_year, students,
                            graduates, dropout]
                 new_row[3].append(student.fullname)
-                # swap old row with updated one
+                # Swap old row with updated one
                 rows.remove(rows[row_index])
                 rows.insert(row_index, new_row)
                 # Reset whole Classroom Register
@@ -166,9 +168,10 @@ class StudentRegister(Register):
                     courses = row.get('Courses')
                     courses = courses.split('}, {')
                     courses_list = []
+                    # Strip strings from redundant characters
                     for item in courses:
-                        item = item.replace("[", "").replace("]", "") \
-                            .strip("{}")
+                        item = item.replace("[", "").replace("]", "")\
+                                   .replace("\'", "").strip("{}")
                         key = item.split(": ")[0]
                         value = item.split(": ")[1].split(", ")
                         value = [] if value[0] == '' else value
@@ -192,25 +195,37 @@ class StudentRegister(Register):
             if last_name in row.get('Last name'):
                 if first_name in row.get('First name'):
                     searched_info = row.get(fieldnames[searched_index])
+                    if searched_index == 4:
+                        courses_list = []
+                        searched_info = searched_info.split("}, {")
+                        for item in searched_info:
+                            item = item.replace("[", "").replace("]", "") \
+                                       .replace("\'", "").strip("{}")
+                            key = item.split(": ")[0]
+                            value = item.split(": ")[1].split(", ")
+                            value = [] if value[0] == '' else value
+                            new_tuple = (key, value)
+                            courses_list.append(new_tuple)
+                        searched_info = dict(tup for tup in courses_list)
                     return searched_info
                 else:
                     continue
 
     def new_student(self, *args):
         """Add a new student into Student Register."""
-        # create new Student instance
-        new_student_ = Student(*args)
-        # write new student data into Student Register
+        #  Create new Student instance
+        new_student_item = Student(*args)
+        # Write new student data into Student Register
         with open(self.file, 'a', newline='', encoding='utf-8') as file:
-            fieldnames = ['First name', 'Last name', 'Date of Birth',
-                          'Classroom', 'Courses']
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writerow({fieldnames[0]: new_student_.first_name,
-                             fieldnames[1]: new_student_.last_name,
-                             fieldnames[2]: new_student_.birth_date,
-                             fieldnames[3]: new_student_.classroom,
-                             fieldnames[4]: new_student_.courses})
-        print(f'New student {new_student_.fullname} has been added to the '
+            writer = csv.writer(file, delimiter=';')
+            first_name = new_student_item.first_name
+            last_name = new_student_item.last_name
+            date_of_birth = new_student_item.birth_date
+            classroom = new_student_item.classroom
+            courses = new_student_item.courses
+            writer.writerow([first_name, last_name, date_of_birth, classroom,
+                             courses])
+        print(f'New student {new_student_item.fullname} has been added to the '
               f'Register')
 
     def move_student_to_graduates(self, student):
@@ -220,7 +235,53 @@ class StudentRegister(Register):
         pass
 
     def update_student_info(self, student, course=None, grade=None):
-        pass
+        """Update information about student in the Student Register"""
+        # Update student's grades for a specific course
+        if course and grade:
+            with open(self.file, 'r+', newline='', encoding='utf-8') as file:
+                reader = csv.reader(file, delimiter=';')
+                # Create a list of entries from Student Register
+                rows = []
+                for row in reader:
+                    rows.append(row)
+                writer = csv.writer(file, delimiter=';')
+                row_index = None
+                for row in rows:
+                    if student.last_name in row[1]:
+                        if student.first_name in row[0]:
+                            row_index = rows.index(row)
+                # Use found entry index to update entry
+                if row_index is not None:
+                    entry = rows[row_index]
+                    first_name = entry[0]
+                    last_name = entry[1]
+                    date_of_birth = entry[2]
+                    classroom = entry[3]
+                    courses = entry[4]
+                    courses = courses.split('}, {')
+                    courses_list = []
+                    # Strip strings from redundant characters
+                    for item in courses:
+                        item = item.replace("[", "").replace("]", "")\
+                                   .replace("\'", "").strip("{}")
+                        key = item.split(": ")[0]
+                        value = item.split(": ")[1].split(", ")
+                        value = [] if value[0] == '' else value
+                        value.append(grade)
+                        new_tuple = (key, value)
+                        courses_list.append(new_tuple)
+                    courses = dict(tup for tup in courses_list)
+                    # Create updated row
+                    new_row = [first_name, last_name, date_of_birth,
+                               classroom, courses]
+                    # Swap old row with updated one
+                    rows.remove(rows[row_index])
+                    rows.insert(row_index, new_row)
+                    # Reset whole Student Register
+                    file.seek(0)
+                    file.truncate(0)
+                    # Overwrite Student Register with updated list of entries
+                    writer.writerows(rows)
 
 
 class CourseRegister(Register):
@@ -270,7 +331,7 @@ class CourseRegister(Register):
     def new_course(self, course):
         """Add a new course into Course Register."""
         with open(self.file, 'a', encoding='utf-8', newline='') as file:
-            writer = csv.writer(file)
+            writer = csv.writer(file, delimiter=';')
             course_name = course.course_name
             grades_number = course.grades_number
             students = course.attending_students
@@ -282,35 +343,40 @@ class CourseRegister(Register):
     def add_student_to_course(self, student, course):
         """Add a new student to a specific course in Course Register."""
         with open(self.file, 'r+', newline='', encoding='utf-8') as file:
-            reader = csv.reader(file)
+            reader = csv.reader(file, delimiter=';')
             # Create a list of entries from Course Register
             rows = []
             for row in reader:
                 rows.append(row)
-            writer = csv.writer(file)
+            writer = csv.writer(file, delimiter=';')
             # Find appropriate course in Course Register and update its
             # entry index
             row_index = None
             for row in rows:
                 course_name = row[0]
-                key_from_course_attr = str(course.keys())
-                if course_name in key_from_course_attr:
-                    row_index = rows.index(row)
+                for course_item in course:
+                    key_from_course_attr = str(course_item.keys())
+                    if course_name in key_from_course_attr:
+                        row_index = rows.index(row)
+                    else:
+                        continue
             # Use found entry index to update entry
             if row_index is not None:
                 entry = rows[row_index]
                 course_name = entry[0]
                 grades_number = entry[1]
-                students = entry[2].strip("[]").replace("'", '').split(',')
+                # Strip strings from redundant characters
+                students = entry[2].strip("[]").replace("\'", '').split(', ')
                 students = [x for x in students if x]
-                graduates = entry[3].strip("[]").replace("'", '').split(',')
+                graduates = entry[3].strip("[]").replace("\'", '').split(', ')
                 graduates = [x for x in graduates if x]
-                dropout = entry[4].strip("[]").replace("'", '').split(',')
+                dropout = entry[4].strip("[]").replace("\'", '').split(', ')
                 dropout = [x for x in dropout if x]
+                # Create updated row
                 new_row = [course_name, grades_number, students, graduates,
                            dropout]
                 new_row[2].append(student.fullname)
-                # swap old row with updated one
+                # Swap old row with updated one
                 rows.remove(rows[row_index])
                 rows.insert(row_index, new_row)
                 # Reset whole Course Register
@@ -319,10 +385,50 @@ class CourseRegister(Register):
                 # Overwrite Course Register with updated list of entries
                 writer.writerows(rows)
 
-    def move_student_to_graduates(self, student):
-        pass
+    def move_student_to_graduates(self, course, student):
+        with open(self.file, 'r+', newline='', encoding='utf-8') as file:
+            reader = csv.reader(file, delimiter=';')
+            # Create a list of entries from Course Register
+            rows = []
+            for row in reader:
+                rows.append(row)
+            writer = csv.writer(file, delimiter=';')
+            # Find appropriate course in Course Register and update its
+            # entry index
+            row_index = None
+            for row in rows:
+                course_name = row[0]
+                if course_name == course.course_name:
+                    row_index = rows.index(row)
+            # Use found entry index to update entry
+            if row_index is not None:
+                entry = rows[row_index]
+                course_name = entry[0]
+                grades_number = entry[1]
+                # Strip redundant characters and remove student from attending
+                # students
+                students = entry[2].strip("[]").replace("'", '').split(', ')
+                students = [x for x in students if x]
+                students.remove(student.fullname)
+                # Strip redundant characters and update graduates' list with
+                # student's info
+                graduates = entry[3].strip("[]").replace("'", '').split(', ')
+                graduates = [x for x in graduates if x]
+                graduates.append(student.fullname)
+                dropout = entry[4].strip("[]").replace("'", '').split(', ')
+                dropout = [x for x in dropout if x]
+                new_row = [course_name, grades_number, students, graduates,
+                           dropout]
+                # Swap old row with updated one
+                rows.remove(rows[row_index])
+                rows.insert(row_index, new_row)
+                # Reset whole Course Register
+                file.seek(0)
+                file.truncate(0)
+                # Overwrite Course Register with updated list of entries
+                writer.writerows(rows)
 
-    def move_student_to_dropouts(self, student):
+    def move_student_to_dropouts(self, course, student):
         pass
 
 
@@ -339,7 +445,7 @@ class Classroom:
         self.graduates = [] if not graduates else graduates
 
     def __repr__(self):
-        return f'Class {self.name}'
+        return self.name
 
     def add_student_to_classroom(self, student):
         """Add a student into Classroom instance."""
@@ -374,11 +480,25 @@ class Student:
                                         int(date[2]))
         self.classroom = classroom
         self.status = 'Active'
-        self.courses = [{course: []}]
+        self.class_register = class_register
+        self.course_register = course_register
+        self.student_register = student_register
         check_if_registered = \
-            student_register.is_student_in_register(f'{self.first_name} '
-                                                    f'{self.last_name}')
-        if not check_if_registered:
+            self.student_register.is_student_in_register(f'{self.first_name} '
+                                                         f'{self.last_name}')
+        if check_if_registered:
+            self.courses = []
+            if len(course) > 1:
+                for course_item in course:
+                    course_name = course_item[0]
+                    grades = course_item[1]
+                    self.courses.append({course_name: grades})
+            else:
+                course_name = [x for x in course.keys()][0]
+                grades = [x for x in course.values()][0]
+                self.courses.append({course_name: grades})
+        else:
+            self.courses = [{course: []}]
             # automatically add student to prompted classroom
             classroom.add_student_to_classroom(self)
             # automatically assign student to classroom in Classroom Register
@@ -386,7 +506,7 @@ class Student:
             # automatically add student to prompted course
             course.add_student_to_course(self)
             # automatically assign student to course in Course Register
-            course_register.add_student_to_course(self, self.courses[0])
+            course_register.add_student_to_course(self, self.courses)
 
     def __repr__(self):
         return self.fullname
@@ -397,27 +517,51 @@ class Student:
         course.attending_students.append(self)
 
     def get_grade(self, course, grade):
-        """Assign a grade to a specific course of Student instance and check 
-        if graduation conditions are met."""
-        for course_item in self.courses:  # for item in course list
-            if course in course_item.keys():  # if the course is in keys
-                course_item.get(course).append(grade)  # append grade to
-                # values in course dictionary
-                # check if student got maximum number of grades for course
-                if len(course_item.get(course)) == course.grades_number:
+        """Assign a grade to a specific course of Student instance. If
+        conditions for passing the course are met, calculate final grade for
+        the course and update registers, else just update registers."""
+        # for item in course list
+        for course_item in self.courses:
+            # if the course is in keys
+            if course.course_name in course_item.keys():
+                # append grade to the values in course dictionary
+                course_item.get(course.course_name).append(grade)
+                # Check the number of grades already received
+                if len(course_item.get(course.course_name)) < \
+                        course.grades_number:
+                    print(f'Student {self} received a {grade} in {course}')
+                elif len(course_item.get(course.course_name)) == \
+                        course.grades_number:
                     final_grade = \
-                        self.calc_final_grade(course_item.get(course))
+                        self.calc_final_grade(course_item
+                                              .get(course.course_name))
                     if final_grade >= 3:
                         course.pass_course(self, final_grade)
+                        # Move student to graduates for the course in Course
+                        # Register
+                        self.course_register.move_student_to_graduates(course,
+                                                                       self)
+                        print(f'Student {self} received a {grade} in {course}')
+                        print(f'Student {self} has passed {course} with grade '
+                              f'{final_grade}')
                     else:
-                        course.drop_outs.append(self)
+                        course.drop_out_student(self)
                         self.drop_out()
-                return self.courses
+                # Prevent from exceeding the number of grades assigned to the
+                # course
+                else:
+                    print(f'Cannot assign grade for student {self} for course'
+                          f' {course}')
+                    exit()
+                self.student_register.update_student_info(self, course=course,
+                                                          grade=grade)
+        # to do: check if student passed required number of courses to graduate
 
     @staticmethod
     def calc_final_grade(grades):
         """Calculate the final grade if course graduation conditions are
         met."""
+        grades = [int(grade) for grade in grades]
         final_grade = round(sum(grades) / len(grades))
         return final_grade
 
@@ -451,22 +595,15 @@ class Course:
         self.attending_students.append(student)
         return self.attending_students
 
-    def give_grade(self, student, grade):
-        """Assign a grade to the specific student in Course instance."""
-        if student in self.attending_students:
-            student.get_grade(self, grade)
-        else:
-            print(f'{student} is not course attendee')
-
-    def pass_course(self, student, grade):
-        for student_ in self.attending_students:
-            if student_ == student:
+    def pass_course(self, student, final_grade):
+        for student_item in self.attending_students:
+            if student_item == student:
                 self.attending_students.remove(student)
-        self.graduates.append({student: grade})
-        return self.attending_students, self.graduates
+        self.graduates.append({student: final_grade})
+        # to do: update Course Register
 
     def drop_out_student(self, student):
-        pass
+        pass  # append student into dropout list, update registers
 
 
 def main():
@@ -498,7 +635,7 @@ def main():
                         help='Add new course, give course name, number of '
                              'grades to pass')
     # give grade to student
-    parser.add_argument('--give_grade', nargs=3,
+    parser.add_argument('--give_grade', nargs='*',
                         help="Give grade to student, give course, grade, "
                              "student's name")
 
@@ -530,7 +667,7 @@ def main():
     elif args.new_student:
         args_ = args.new_student
         first_name, last_name, birthdate = args_[0], args_[1], args_[2]
-
+        fullname = f'{first_name} {last_name}'
         # test if prompted classroom exists in the register
         assigned_classroom = class_reg.is_classroom_in_register(args_[3])
         # exit creating student if assigned classroom does not exist
@@ -546,10 +683,17 @@ def main():
                   f'first!')
             exit()
 
-        # begin creation of new Student in Student Register
-        student_reg.new_student(first_name, last_name, birthdate,
-                                assigned_classroom, first_course, class_reg,
-                                course_reg, student_reg)
+        # Check if student is already in Student Register
+        check_student = student_reg.is_student_in_register(fullname)
+        # If student is registered exit program, else begin creation of new
+        # Student in Student Register
+        if check_student:
+            print(f'Student {fullname} is already registered!')
+            exit()
+        else:
+            student_reg.new_student(first_name, last_name, birthdate,
+                                    assigned_classroom, first_course,
+                                    class_reg, course_reg, student_reg)
 
     elif args.new_course:
         course_name, grades_number = args.new_course[0], args.new_course[1]
@@ -565,7 +709,6 @@ def main():
             print(f'{new_course} has been added to register')
 
     elif args.give_grade:
-        student_object = None
         course_name = args.give_grade[0]
         grade = args.give_grade[1]
         student_name = args.give_grade[2]
@@ -575,7 +718,7 @@ def main():
         if not check_course:
             print(f'Course {course_name} does not exist. Create new course'
                   f'first!')
-            exit()
+            exit()  # exit program if course does not exist
 
         # Check if student exists
         check_student = student_reg.is_student_in_register(student_name)
@@ -592,8 +735,9 @@ def main():
             last_name = student_name.split(' ')[1]
             date_of_birth = student_reg.extract_student_info(student_name,
                                                              'Date of birth')
-            classroom = student_reg.extract_student_info(student_name,
-                                                         'Classroom')
+            classroom_name = student_reg.extract_student_info(student_name,
+                                                              'Classroom')
+            classroom = class_reg.is_classroom_in_register(classroom_name)
             courses = student_reg.extract_student_info(student_name, 'Courses')
             student_object = Student(first_name, last_name, date_of_birth,
                                      classroom, courses, class_reg,
@@ -608,7 +752,6 @@ def main():
             course_object = Course(course_name, grades_number, students,
                                    graduates, dropout)
             student_object.get_grade(course_object, grade)
-            student_reg.update_student_info(student_object)
         else:
             print(f'{student_name} does not attend {course_name}')
             exit()  # exit program if student does not attend course
