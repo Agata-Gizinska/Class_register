@@ -1,4 +1,5 @@
 Course name;Grades to pass;Students;Graduates;Dropout
-Computer science;3;[];['Anna Nowak', 'John Paine', 'Alice Coper', 'Donnie Darko'];[]
-Physics;4;['Anna Nowak'];[];[]
-Mathematics;5;[];[];[]
+Computer science;3;['Lucas Fox'];['Anna Nowak', 'John Paine', 'Alice Coper', 'Donnie Darko'];[]
+Physics;4;['Anna Nowak', 'Alice Coper', 'Anna Nowak', 'Lucas Fox'];['Donnie Darko'];[]
+Mathematics;5;['Anna Nowak', 'Lucas Fox', 'John Paine'];[];[]
+Spanish;3;['Donnie Darko'];[];[]

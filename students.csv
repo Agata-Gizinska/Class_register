@@ -1,5 +1,6 @@
 First name;Last name;Date of birth;Classroom;Courses
-Donnie;Darko;1992-01-29;2022-2025;{'Computer science': ['4', '3', '3']}
-Alice;Coper;1980-07-19;2022-2025;{'Computer science': ['3', '5', '3']}
-Anna;Nowak;1998-05-20;2022-2025;{'Computer science': ['4', '4', '4'], Physics: []}
-John;Paine;1995-08-27;2022-2025;{'Computer science': ['4', '5', '5']}
+Donnie;Darko;1992-01-29;2022-2025;[{'Computer science': ['4', '3', '3']}, {'Physics': ['3', '4', '4', '5']}, {'Spanish': []}]
+Alice;Coper;1980-07-19;2022-2025;[{'Computer science': ['3', '5', '3']}, {'Physics': []}]
+Anna;Nowak;1998-05-20;2022-2025;[{'Computer science': ['4', '4', '4']}, {'Physics': []}, {'Mathematics': []}]
+John;Paine;1995-08-27;2022-2025;[{'Computer science': ['4', '5', '5']}, {'Mathematics': []}]
+Lucas;Fox;1989-03-23;2022-2025;[{'Mathematics': []}, {'Physics': ['5']}, {'Computer science': []}]

@@ -247,7 +247,10 @@ class StudentRegister(Register):
                             value = [] if value[0] == '' else value
                             new_tuple = (key, value)
                             courses_list.append(new_tuple)
-                        searched_info = dict(tup for tup in courses_list)
+                        searched_info = []
+                        for tup in courses_list:
+                            new_dict = {tup[0]: tup[1]}
+                            searched_info.append(new_dict)
                     return searched_info
                 else:
                     continue
@@ -302,15 +305,20 @@ class StudentRegister(Register):
                     value = item.split(": ")[1].split(", ")
                     value = [] if value[0] == '' else value
                     # Update student's grades for a specific course
-                    if course and grade:
-                        value.append(grade)
+                    if grade:
+                        if key == course.course_name:
+                            value.append(grade)
                     new_tuple = (key, value)
                     courses_list.append(new_tuple)
                 # If necessary update student's courses with a new course
-                if student and course:
-                    new_course = (course, [])
-                    courses_list.append(new_course)
-                courses = dict(tup for tup in courses_list)
+                if not grade:
+                    if student and course:
+                        new_course = (course.course_name, [])
+                        courses_list.append(new_course)
+                courses = []
+                for tup in courses_list:
+                    new_dict = {tup[0]: tup[1]}
+                    courses.append(new_dict)
                 # Create updated row
                 updated_row = [first_name, last_name, date_of_birth,
                                classroom, courses]
@@ -532,13 +540,13 @@ class Student:
             self.courses = []
             if len(course) > 1:
                 for course_item in course:
-                    course_name = course_item[0]
-                    grades = course_item[1]
+                    course_name = [x for x in course_item.keys()][0]
+                    grades = course_item.get(course_name)
                     self.courses.append({course_name: [grade for grade in
                                                        grades]})
             else:
-                course_name = [x for x in course.keys()][0]
-                grades = [x for x in course.values()][0]
+                course_name = [x for x in course[0].keys()][0]
+                grades = [x for x in course[0].values()][0]
                 self.courses.append({course_name: grades})
         else:
             self.courses = [{course: []}]
@@ -549,14 +557,14 @@ class Student:
             # automatically add student to prompted course
             course.add_student_to_course(self)
             # automatically assign student to course in Course Register
-            course_register.add_student_to_course(self, self.courses)
+            course_register.add_student_to_course(self, course.course_name)
 
     def __repr__(self):
         return self.fullname
 
     def add_to_course(self, course):
         """Add a course to Student instance and update registers."""
-        course_entry = {course: []}
+        course_entry = {course.course_name: []}
         self.courses.append(course_entry)
         self.student_register.update_student_info(self, course)
         course.attending_students.append(self)
@@ -607,7 +615,16 @@ class Student:
                     exit()
                 self.student_register.update_student_info(self, course=course,
                                                           grade=grade)
-        # to do: check if student passed required number of courses to graduate
+        # Check if student passed the required number of courses to graduate
+        if self.status != 'Inactive':
+            if len(self.courses) == 3:
+                course_names = []
+                for course in self.courses:
+                    course_name = [x for x in course.keys()][0]
+                    course_names.append(course_name)
+                check = self.check_passed_courses(course_names)
+                if check:
+                    self.graduate()
 
     @staticmethod
     def calc_final_grade(grades):
@@ -617,16 +634,29 @@ class Student:
         final_grade = round(sum(grades) / len(grades))
         return final_grade
 
+    def check_passed_courses(self, courses):
+        counter = 0
+        for course in courses:
+            graduates = self.course_register.extract_course_info(course,
+                                                                 'Graduates')
+            if self.fullname in graduates:
+                counter += 1
+        if counter >= 3:
+            return True
+        else:
+            return False
+
     def graduate(self):
         self.classroom.graduate_student(self)
         if self in self.classroom.graduates:
             self.status = 'Graduate'
-            # to do: update Classroom and Student Register
+            self.class_register.change_student_status(self, action='Graduate')
 
     def drop_out(self):
-        self.status = 'Inactive'
         self.classroom.drop_out_student(self)
-        # to do: update Classroom and Student Register
+        if self in self.classroom.drop_out_list:
+            self.status = 'Inactive'
+            self.class_register.change_student_status(self, action='Drop')
 
 
 class Course:
@@ -644,7 +674,7 @@ class Course:
 
     def add_student_to_course(self, student):
         """Add student to Course instance."""
-        self.attending_students.append(student)
+        self.attending_students.append(student.fullname)
         return self.attending_students
 
     def pass_course(self, student, final_grade):
