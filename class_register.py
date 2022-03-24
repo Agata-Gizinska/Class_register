@@ -154,14 +154,14 @@ class ClassroomRegister(Register):
                 end_year = classroom_name.split("-")[1]
                 # Strip redundant characters and remove student from attending
                 # students
-                students = entry[2].strip("[]").replace("'", '').split(', ')
+                students = entry[3].strip("[]").replace("'", '').split(', ')
                 students = [x for x in students if x]
                 students.remove(student.fullname)
                 # Strip redundant characters and move student's info into
                 # appropriate list
-                graduates = entry[3].strip("[]").replace("'", '').split(', ')
+                graduates = entry[4].strip("[]").replace("'", '').split(', ')
                 graduates = [x for x in graduates if x]
-                dropout = entry[4].strip("[]").replace("'", '').split(', ')
+                dropout = entry[5].strip("[]").replace("'", '').split(', ')
                 dropout = [x for x in dropout if x]
                 if action == 'Graduate':
                     graduates.append(student.fullname)
@@ -503,8 +503,8 @@ class Classroom:
     def graduate_student(self, student):
         """Move a student to Classroom instance's graduates list."""
         try:
-            self.student_list.remove(student)
-            self.graduates.append(student)
+            self.student_list.remove(student.fullname)
+            self.graduates.append(student.fullname)
         except ValueError:
             print(f'{student} not on student list')
 
@@ -648,9 +648,11 @@ class Student:
 
     def graduate(self):
         self.classroom.graduate_student(self)
-        if self in self.classroom.graduates:
+        if self.fullname in self.classroom.graduates:
             self.status = 'Graduate'
             self.class_register.change_student_status(self, action='Graduate')
+            print(f'{self.fullname} has graduated {self.classroom}. '
+                  f'Congratulations!')
 
     def drop_out(self):
         self.classroom.drop_out_student(self)
@@ -679,10 +681,9 @@ class Course:
 
     def pass_course(self, student, final_grade):
         for student_item in self.attending_students:
-            if student_item == student:
-                self.attending_students.remove(student)
+            if student_item == student.fullname:
+                self.attending_students.remove(student_item)
         self.graduates.append({student: final_grade})
-        # to do: update Course Register
 
     def drop_out_student(self, student):
         pass  # append student into dropout list, update registers
