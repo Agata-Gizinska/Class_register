@@ -895,249 +895,253 @@ class Course:
         self.dropouts.append(student.fullname)
 
 
-def main():
-    """
-    The main function based on the argument parser.
+def new_classroom_func(class_reg, start_year, end_year):
+    classroom_name = start_year + '-' + end_year
 
-    Available optional arguments:
-    -------------
-    print_classes
-        Prints the Classroom Register
-    print_students
-        Prints the Student Register
-    print_courses
-        Print the Course Register
-    new_classroom
-        Adds a new classroom to the Classroom Register.
-        Takes arguments: start year, end year
-    new_student
-        Adds a new student to all the registers.
-        Takes arguments: first name, last name, date of birth (yyyy-mm-dd),
-        existing assigned classroom, existing course to assign
-    new_course
-        Adds a new course to the Course Register.
-        Takes arguments: course name, the number of grades required to pass
-    append_to_course
-        Adds an existing student to an existing course.
-        Takes arguments: student's fullname, course name
-    give_grade
-        Appends a grade to a registered student for an existing course and
-        checks if graduation conditions are met.
-        Takes arguments: student's fullname, course name, grade
-    """
+    # Check if the prompted classroom exists in the register
+    check = class_reg.is_classroom_in_register(classroom_name)
+    # Add a new classroom into the register if it has not been registered
+    if check:
+        print(f'{classroom_name} already exists')
+    else:
+        new_classroom = Classroom(start_year, end_year)
+        class_reg.new_classroom(new_classroom)
+        print(f'{new_classroom} has been added to register')
 
-    class_reg = ClassroomRegister()
-    student_reg = StudentRegister()
-    course_reg = CourseRegister()
 
-    parser = argparse.ArgumentParser()
-    # Print the Classroom Register
-    parser.add_argument('--print_classes', action='store_true',
-                        help='Print classroom register')
-    # Print the Student Register
-    parser.add_argument('--print_students', action='store_true',
-                        help='Print student register')
-    # Print the Course Register
-    parser.add_argument('--print_courses', action='store_true',
-                        help='Print courses register')
-    # Add a new classroom to the Classroom Register
-    parser.add_argument('--new_classroom', nargs='*',
-                        help='Add a new classroom: give start year, end year')
-    # Add a new student to the Student Register
-    parser.add_argument('--new_student', nargs=5,
-                        help='Add a new student: give first name, last name, '
-                             'date of birth yyyy-mm-dd, existing assigned '
-                             'classroom, one existing course to assign')
-    # Add a new course to the Course Register
-    parser.add_argument('--new_course', nargs='*',
-                        help='Add a new course: give course name, number of '
-                             'grades to pass')
-    # Add an existing student to another course
-    parser.add_argument('--append_to_course', nargs='*',
-                        help="Add a student to another course: give student's"
-                             "fullname, course name")
-    # Give a grade to a student
-    parser.add_argument('--give_grade', nargs='*',
-                        help="Give a grade to the student: give student's "
-                             "fullname, course name, grade")
+def new_student_func(class_reg, course_reg, student_reg, firstname, lastname,
+                     birthdate, classroom, course):
+    fullname = f'{firstname} {lastname}'
+    # Test if the prompted classroom exists in the register
+    assigned_classroom = class_reg.is_classroom_in_register(classroom)
+    # Exit creating student if the assigned classroom does not exist
+    if not assigned_classroom:
+        print(f'Classroom {classroom} does not exist. Create a new '
+              f'classroom first!')
+        exit()
+    # Test if the prompted course exists in the register
+    first_course = course_reg.is_course_in_register(course)
+    # Exit creating student if the assigned course does not exist
+    if not first_course:
+        print(f'Course {course} does not exist. Create new course '
+              f'first!')
+        exit()
 
-    args = parser.parse_args()
+    # Check if the student is already in the Student Register
+    check_student = student_reg.is_student_in_register(fullname)
+    # If the student is registered exit program, else begin creation of a
+    # new student in the Student Register
+    if check_student:
+        print(f'Student {fullname} is already registered!')
+        exit()
+    else:
+        student_reg.new_student(firstname, lastname, birthdate, classroom,
+                                course, class_reg, course_reg, student_reg)
 
-    if args.print_classes:
-        class_reg.print_register()
 
-    elif args.print_students:
-        student_reg.print_register()
+def new_course_func(course_reg, course_name, grades_number):
+    # Check if the prompted course exists in the register
+    check = course_reg.is_course_in_register(course_name)
+    # Add a new course into the register if it has not been registered
+    if check:
+        print(f'{course_name} already exists')
+    else:
+        new_course = Course(course_name, grades_number)
+        course_reg.new_course(new_course)
+        print(f'{new_course} has been added to register')
 
-    elif args.print_courses:
-        course_reg.print_register()
 
-    elif args.new_classroom:
-        start_year, end_year = args.new_classroom[0], args.new_classroom[1]
-        classroom_name = start_year + '-' + end_year
-
-        # Check if the prompted classroom exists in the register
-        check = class_reg.is_classroom_in_register(classroom_name)
-        # Add a new classroom into the register if it has not been registered
-        if check:
-            print(f'{classroom_name} already exists')
-        else:
-            new_classroom = Classroom(start_year, end_year)
-            class_reg.new_classroom(new_classroom)
-            print(f'{new_classroom} has been added to register')
-
-    elif args.new_student:
-        args_ = args.new_student
-        first_name, last_name, birthdate = args_[0], args_[1], args_[2]
-        fullname = f'{first_name} {last_name}'
-        # Test if the prompted classroom exists in the register
-        assigned_classroom = class_reg.is_classroom_in_register(args_[3])
-        # Exit creating student if the assigned classroom does not exist
-        if not assigned_classroom:
-            print(f'Classroom {args_[3]} does not exist. Create new classroom '
-                  f'first!')
-            exit()
-        # Test if the prompted course exists in the register
-        first_course = course_reg.is_course_in_register(args_[4])
-        # Exit creating student if the assigned course does not exist
-        if not first_course:
-            print(f'Course {args_[4]} does not exist. Create new course '
-                  f'first!')
-            exit()
-
-        # Check if the student is already in the Student Register
-        check_student = student_reg.is_student_in_register(fullname)
-        # If the student is registered exit program, else begin creation of a
-        # new student in the Student Register
-        if check_student:
-            print(f'Student {fullname} is already registered!')
-            exit()
-        else:
-            student_reg.new_student(first_name, last_name, birthdate,
-                                    assigned_classroom, first_course,
-                                    class_reg, course_reg, student_reg)
-
-    elif args.new_course:
-        course_name, grades_number = args.new_course[0], args.new_course[1]
-        # Check if the prompted course exists in the register
-        check = course_reg.is_course_in_register(course_name)
-        # Add a new course into the register if it has not been registered
-        if check:
-            print(f'{course_name} already exists')
-        else:
-            new_course = Course(course_name, grades_number)
-            course_reg.new_course(new_course)
-            print(f'{new_course} has been added to register')
-
-    elif args.append_to_course:
-        args_ = args.append_to_course
-        student_name, course_name = args_[0], args_[1]
-        # Check if the prompted student exists in the register
-        is_student = student_reg.is_student_in_register(student_name)
-        # Check if the prompted course exists in the register
-        is_course = course_reg.is_course_in_register(course_name)
-        # If both conditions are met, check if the student has been already
-        # attending the course
-        if is_student and is_course:
-            is_student_in_course = \
-                student_reg.is_student_attending_course(student_name,
-                                                        course_name)
-            # Prevent from appending the student to the course that they has
-            # been already attending by exiting the program
-            if is_student_in_course:
-                print(f'Student {student_name} is already attending '
-                      f'{course_name}')
-                exit()
-            # Otherwise create a Student instance based on the data from the
-            # Student Register
-            else:
-                first_name = student_name.split(' ')[0]
-                last_name = student_name.split(' ')[1]
-                date_of_birth = \
-                    student_reg.extract_student_info(student_name,
-                                                     'Date of birth')
-                classroom_name = student_reg.extract_student_info(student_name,
-                                                                  'Classroom')
-                classroom = class_reg.is_classroom_in_register(classroom_name)
-                courses = student_reg.extract_student_info(student_name,
-                                                           'Courses')
-                student_object = Student(first_name, last_name, date_of_birth,
-                                         classroom, courses, class_reg,
-                                         course_reg, student_reg,
-                                         status='Active')
-                # Create a Course instance based on the data from the Course
-                # Register
-                grades_number = \
-                    course_reg.extract_course_info(course_name,
-                                                   'Grades to pass')
-                students = course_reg.extract_course_info(course_name,
-                                                          'Students')
-                graduates = course_reg.extract_course_info(course_name,
-                                                           'Graduates')
-                dropout = course_reg.extract_course_info(course_name,
-                                                         'Dropout')
-                course_object = Course(course_name, grades_number, students,
-                                       graduates, dropout)
-                student_object.add_to_course(course_object)
-
-    elif args.give_grade:
-        course_name = args.give_grade[1]
-        grade = args.give_grade[2]
-        student_name = args.give_grade[0]
-
-        # Check if the course exists and exit program if it does not
-        check_course = course_reg.is_course_in_register(course_name)
-        if not check_course:
-            print(f'Course {course_name} does not exist. Create new course'
-                  f'first!')
-            exit()
-
-        # Check if the student is registered and exit program if they do not
-        check_student = student_reg.is_student_in_register(student_name)
-        if not check_student:
-            print(f'Student {student_name} has not been registered.')
-            exit()
-
-        # Check if the student attends the course and exit program if they do
-        # not
-        check_student_in_course = \
+def append_to_course_func(class_reg, course_reg, student_reg, firstname,
+                          lastname, course_name):
+    student_name = f'{firstname} {lastname}'
+    # Check if the prompted student exists in the register
+    is_student = student_reg.is_student_in_register(student_name)
+    # Check if the prompted course exists in the register
+    is_course = course_reg.is_course_in_register(course_name)
+    # If both conditions are met, check if the student has been already
+    # attending the course
+    if is_student and is_course:
+        is_student_in_course = \
             student_reg.is_student_attending_course(student_name, course_name)
-        if check_student_in_course:
-            # Create a Student instance based on the data from the Student
-            # Register
-            first_name = student_name.split(' ')[0]
-            last_name = student_name.split(' ')[1]
-            date_of_birth = student_reg.extract_student_info(student_name,
-                                                             'Date of birth')
+        # Prevent from appending the student to the course that they have
+        # been already attending by exiting the program
+        if is_student_in_course:
+            print(f'Student {student_name} is already attending '
+                  f'{course_name}')
+            exit()
+        # Otherwise, create a Student instance based on the data from the
+        # Student Register
+        else:
+            date_of_birth = \
+                student_reg.extract_student_info(student_name,
+                                                 'Date of birth')
             classroom_name = student_reg.extract_student_info(student_name,
                                                               'Classroom')
             classroom = class_reg.is_classroom_in_register(classroom_name)
-            courses = student_reg.extract_student_info(student_name, 'Courses')
-            status = student_reg.extract_student_info(student_name, 'Status')
-            # Prevent students with status 'Inactive' or 'Graduate' from
-            # getting a grade by exiting thr program
-            if status == 'Inactive' or status == 'Graduate':
-                print(f'{student_name} is not on active students list for '
-                      f'{course_name}')
-                exit()
-            student_object = Student(first_name, last_name, date_of_birth,
-                                     classroom, courses, class_reg,
-                                     course_reg, student_reg, status)
+            courses = student_reg.extract_student_info(student_name,
+                                                       'Courses')
+            student_object = Student(firstname, lastname, date_of_birth,
+                                     classroom, courses, class_reg, course_reg,
+                                     student_reg, status='Active')
             # Create a Course instance based on the data from the Course
             # Register
-            grades_number = course_reg.extract_course_info(course_name,
-                                                           'Grades to pass')
+            grades_number = \
+                course_reg.extract_course_info(course_name, 'Grades to pass')
             students = course_reg.extract_course_info(course_name, 'Students')
             graduates = course_reg.extract_course_info(course_name,
                                                        'Graduates')
             dropout = course_reg.extract_course_info(course_name, 'Dropout')
             course_object = Course(course_name, grades_number, students,
                                    graduates, dropout)
-            # Execute Student instance's get_grade method
-            student_object.get_grade(course_object, grade)
-        else:
-            print(f'{student_name} does not attend {course_name}')
+            student_object.add_to_course(course_object)
+
+
+def give_grade_func(class_reg, course_reg, student_reg, firstname, lastname,
+                    course_name, grade):
+    student_name = f'{firstname} {lastname}'
+    # Check if the course exists and exit program if it does not
+    check_course = course_reg.is_course_in_register(course_name)
+    if not check_course:
+        print(f'Course {course_name} does not exist. Create a new '
+              f'course first!')
+        exit()
+
+    # Check if the student is registered and exit program if they do not
+    check_student = student_reg.is_student_in_register(student_name)
+    if not check_student:
+        print(f'Student {student_name} has not been registered.')
+        exit()
+
+    # Check if the student attends the course and exit program if they do
+    # not
+    check_student_in_course = \
+        student_reg.is_student_attending_course(student_name, course_name)
+    if check_student_in_course:
+        # Create a Student instance based on the data from the Student
+        # Register
+        date_of_birth = student_reg.extract_student_info(student_name,
+                                                         'Date of birth')
+        classroom_name = student_reg.extract_student_info(student_name,
+                                                          'Classroom')
+        classroom = class_reg.is_classroom_in_register(classroom_name)
+        courses = student_reg.extract_student_info(student_name, 'Courses')
+        status = student_reg.extract_student_info(student_name, 'Status')
+        # Prevent students with status 'Inactive' or 'Graduate' from
+        # getting a grade by exiting thr program
+        if status == 'Inactive' or status == 'Graduate':
+            print(f'{student_name} is not on active students list for '
+                  f'{course_name}')
             exit()
+        student_object = Student(firstname, lastname, date_of_birth, classroom,
+                                 courses, class_reg, course_reg, student_reg,
+                                 status)
+        # Create a Course instance based on the data from the Course
+        # Register
+        grades_number = course_reg.extract_course_info(course_name,
+                                                       'Grades to pass')
+        students = course_reg.extract_course_info(course_name, 'Students')
+        graduates = course_reg.extract_course_info(course_name, 'Graduates')
+        dropout = course_reg.extract_course_info(course_name, 'Dropout')
+        course_object = Course(course_name, grades_number, students,
+                               graduates, dropout)
+        # Execute Student instance's get_grade method
+        student_object.get_grade(course_object, grade)
+    else:
+        print(f'{student_name} does not attend {course_name}')
+        exit()
+
+
+def main():
+    """The main function based on the argument parser."""
+
+    class_reg = ClassroomRegister()
+    student_reg = StudentRegister()
+    course_reg = CourseRegister()
+
+    parser = argparse.ArgumentParser()
+    subparser = parser.add_subparsers(dest='command')
+
+    print_register = subparser.add_parser('print_register')
+    print_register.add_argument('register', choices=['classrooms', 'students',
+                                                     'courses'],
+                                help='Print a specified register: Classroom '
+                                     'Register, Student Register, Course '
+                                     'Register')
+
+    new_classroom = subparser.add_parser('new_classroom',
+                                         help='Register a new classroom')
+    new_classroom.add_argument('start_year', help='Starting year for the '
+                                                  'classroom: yyyy')
+    new_classroom.add_argument('end_year', help='Predicted graduation year for'
+                                                ' the classroom: yyyy')
+
+    new_student = subparser.add_parser('new_student',
+                                       help='Register a new student')
+    new_student.add_argument('firstname', help="Student's first name")
+    new_student.add_argument('lastname', help="Student's last name")
+    new_student.add_argument('birthdate', help="Student's date of birth: "
+                                               "yyyy-mm-dd")
+    new_student.add_argument('classroom', help="Student's assigned classroom "
+                                               "name: yyyy-yyyy")
+    new_student.add_argument('course', help="Student's assigned first course")
+
+    new_course = subparser.add_parser('new_course',
+                                      help='Register a new course')
+    new_course.add_argument('course_name', help='The name of the course')
+    new_course.add_argument('grades_number', help='Number of grades required '
+                                                  'to pass the course: int')
+
+    append_to_course = subparser.add_parser('append_to_course',
+                                            help='Add a registered student to '
+                                                 'another existing course')
+    append_to_course.add_argument('firstname', help="Student's first name")
+    append_to_course.add_argument('lastname', help="Student's last name")
+    append_to_course.add_argument('course_name',
+                                  help='The name of a registered course that '
+                                       'the student should be appended to')
+
+    give_grade = subparser.add_parser('give_grade',
+                                      help='Give a grade to a registered '
+                                           'student')
+    give_grade.add_argument('firstname', help="Student's first name")
+    give_grade.add_argument('lastname', help="Student's last name")
+    give_grade.add_argument('course_name',
+                            help='The name of a registered course that the '
+                                 'student should be graded for')
+    give_grade.add_argument('grade', choices=range(2, 6),
+                            help='Available grades: 2, 3, 4, 5')
+
+    args = parser.parse_args()
+
+    if args.command == 'print_register':
+        if args.reg_name == 'classrooms':
+            class_reg.print_register()
+        elif args.reg_name == 'students':
+            student_reg.print_register()
+        elif args.reg_name == 'courses':
+            course_reg.print_register()
+        else:
+            print('Invalid register, please choose from "classrooms", '
+                  '"students", "courses"')
+
+    elif args.command == 'new_classroom':
+        new_classroom_func(class_reg, args.start_year, args.end_year)
+
+    elif args.command == 'new_student':
+        new_student_func(class_reg, course_reg, student_reg, args.firstname,
+                         args.lastname, args.birthdate, args.classroom,
+                         args.course)
+
+    elif args.command == 'new_course':
+        new_course_func(course_reg, args.course_name, args.grades_number)
+
+    elif args.command == 'append_to_course':
+        append_to_course_func(class_reg, course_reg, student_reg,
+                              args.firstname, args.lastname, args.course_name)
+
+    elif args.command == 'give_grade':
+        give_grade_func(class_reg, course_reg, student_reg, args.firstname,
+                        args.lastname, args.course_name, args.grade)
 
 
 if __name__ == '__main__':
