@@ -1,0 +1,11 @@
+First name;Last name;Date of birth;Classroom;Courses;Status
+Donnie;Darko;1992-01-29;2022-2025;[{'Computer science': ['4', '3', '3']}, {'Physics': ['3', '4', '4', '5']}, {'Spanish': ['5', '4', '5']}];Graduate
+Alice;Coper;1980-07-19;2022-2025;[{'Computer science': ['3', '5', '3']}, {'Physics': ['2', '2', '2', '2']}];Inactive
+Anna;Nowak;1998-05-20;2022-2025;[{'Computer science': ['4', '4', '4']}, {'Physics': ['5', '4', '4', '5']}, {'Mathematics': ['3', '3', '4', '3', '4']}];Graduate
+John;Paine;1995-08-27;2022-2025;[{'Computer science': ['4', '5', '5']}, {'Mathematics': []}];Active
+Lucas;Fox;1989-03-23;2022-2025;[{'Mathematics': ['3', '3', '3', '3', '3']}, {'Physics': ['5', '4', '5', '3']}, {'Computer science': ['5', '4', '4']}];Graduate
+Henry;Powell;2000-02-02;2023-2026;[{'Computer science': ['4', '4', '3']}, {'English': ['4', '4', '4', '2', '5']}, {'Physics': ['3', '2', '3', '4']}];Graduate
+Jane;Austin;1961-05-24;2023-2026;[{'English': ['5', '5']}, {'Spanish': ['4', '5', '5']}];Active
+Kate;Calina;2002-09-03;2023-2026;[{'Mathematics': ['4']}, {'Computer science': []}];Active
+Kim;Chang;1996-10-10;2023-2026;[{'Economics': ['5']}, {'French': ['3', '2', '2', '2', '3']}];Inactive
+Kim;Chang;1996-10-10;2024-2027;[{'Economics': []}];Active
