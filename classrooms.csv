@@ -1,2 +1,4 @@
-Class name,Start year,End year,Students,Graduates,Dropout
-2022-2025,2022,2025,"['Donnie Darko', 'Anna Nowak']",[],[]
+Class name;Start year;End year;Students;Graduates;Dropout
+2022-2025;2022;2025;['John Paine'];['Donnie Darko', 'Lucas Fox', 'Anna Nowak'];['Alice Coper']
+2023-2026;2023;2026;['Jane Austin', 'Kate Calina'];['Henry Powell'];['Kim Chang']
+2024-2027;2024;2027;['Kim Chang'];[];[]
