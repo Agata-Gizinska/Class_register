@@ -1,4 +1,4 @@
-# Class_register
+# Class Register
 
 Manage your students, their courses and grades!
 
